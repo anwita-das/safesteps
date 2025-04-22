@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/firebase/config';
+import Toast from 'react-native-toast-message';
 
 export default function SOSScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -21,33 +24,56 @@ export default function SOSScreen() {
   }, []);
 
   // Trigger SOS
-  const handleSOS = () => {
+  const handleSOS = async () => {
     if (!location) {
       Alert.alert('Location not available', 'Wait until your location is fetched.');
       return;
     }
 
-    // This is where the alert logic will go
-    Alert.alert(
-      '🚨 SOS Alert Sent!',
-      `Latitude: ${location.coords.latitude}\nLongitude: ${location.coords.longitude}`
-    );
+    setLoading(true);
 
-    // 🔜 Later: send location to Firebase, notify community, etc.
+    try {
+      await addDoc(collection(db, 'sosAlerts'), {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        timestamp: serverTimestamp(),
+      });
+
+      Toast.show({
+        type: 'success',
+        text1: '✅ SOS sent successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+      });
+    } catch (error) {
+      console.error('Failed to send SOS:', error);
+
+      Toast.show({
+        type: 'error',
+        text1: '❌ Failed to send SOS. Try again.',
+        position: 'top',
+        visibilityTime: 3000,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Emergency SOS</Text>
-      <Text style={styles.description}>Press the button below to send an emergency alert with your location.</Text>
+      <Text style={styles.description}>
+        Press the button below to send an emergency alert with your location.
+      </Text>
 
       {location ? (
-        <TouchableOpacity style={styles.sosButton} onPress={handleSOS}>
-          <Text style={styles.sosText}>SEND SOS</Text>
+        <TouchableOpacity style={styles.sosButton} onPress={handleSOS} disabled={loading}>
+          <Text style={styles.sosText}>{loading ? 'SENDING...' : 'SEND SOS'}</Text>
         </TouchableOpacity>
       ) : (
         <ActivityIndicator size="large" color="#FF3B30" />
       )}
+      <Toast />
     </View>
   );
 }
