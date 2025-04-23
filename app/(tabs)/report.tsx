@@ -125,7 +125,7 @@ export default function ReportScreen() {
     setType('');
     setDescription('');
     setName('');
-    setSeverity('Medium');
+    setSeverity('');
     setImage(null);
     setLocation(null);
     setAnonymous(false);
