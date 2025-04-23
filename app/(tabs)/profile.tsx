@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emergencyLabel: {
-    color: '#666',
+    color: '#b5b5b5',
     fontSize: 16,
   },
   emergencyValue: {

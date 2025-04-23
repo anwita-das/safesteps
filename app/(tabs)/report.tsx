@@ -23,7 +23,7 @@ export default function ReportScreen() {
   const [description, setDescription] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [severity, setSeverity] = useState('Medium');
+  const [severity, setSeverity] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [anonymous, setAnonymous] = useState(false);
