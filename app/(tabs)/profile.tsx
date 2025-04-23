@@ -442,6 +442,7 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     fontWeight: '500',
+    color: '#b5b5b5'
   },
   settingDescription: {
     color: '#666',
@@ -457,10 +458,10 @@ const styles = StyleSheet.create({
   },
   emergencyLabel: {
     color: '#666',
-    fontSize: 14,
+    fontSize: 16,
   },
   emergencyValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
     marginTop: 4,
   },
