@@ -8,10 +8,11 @@ import { signOut } from 'firebase/auth';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Picker } from '@react-native-picker/picker';
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const isDark = true;
   const [userName, setUserName] = useState('');
   const [editingProfile, setEditingProfile] = useState(false);
   const [editingEmergency, setEditingEmergency] = useState(false);
@@ -27,11 +28,21 @@ export default function ProfileScreen() {
   const [locationSharing, setLocationSharing] = useState(true);
   const [safetyAlerts, setSafetyAlerts] = useState(true);
   const [biometricLock, setBiometricLock] = useState(false);
-  const [emergencyInfo, setEmergencyInfo] = useState({
+  type EmergencyInfo = {
+    bloodGroup: string;
+    allergies: string;
+    medications: string;
+  };
+
+  const [emergencyInfo, setEmergencyInfo] = useState<EmergencyInfo>({
     bloodGroup: 'O+',
     allergies: 'None',
     medications: 'None',
   });
+
+  const bloodGroups = [
+    'A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'
+  ];
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingContactIndex, setEditingContactIndex] = useState<number | null>(null);
@@ -147,14 +158,19 @@ export default function ProfileScreen() {
 
   const handleUpdateEmergencyInfo = async () => {
     try {
-      await updateUserData({ 
-        emergencyInfo,
-        emergencyContact 
-      });
-      setEditingEmergency(false);
-      Alert.alert('Success', 'Emergency information updated');
+      if (auth.currentUser) {
+        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        await updateDoc(userDocRef, {
+          emergencyInfo,
+        });
+        setEditingEmergency(false);
+        Alert.alert('Success', 'Emergency information updated successfully.');
+      } else {
+        Alert.alert('Error', 'No authenticated user found. Please log in again.');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update emergency information');
+      console.error('Failed to update emergency information:', error);
+      Alert.alert('Error', 'Failed to update emergency information. Please try again.');
     }
   };
 
@@ -165,9 +181,51 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleDeleteContact = async (index: number) => {
+    Alert.alert(
+      "Delete Contact",
+      "Are you sure you want to delete this contact?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (auth.currentUser) {
+                const newContacts = trustedContacts.filter((_, idx) => idx !== index);
+                const userDocRef = doc(db, 'users', auth.currentUser.uid);
+                await updateDoc(userDocRef, {
+                  trustedContacts: newContacts
+                });
+                setTrustedContacts(newContacts);
+                setIsModalVisible(false);
+                Toast.show({
+                  type: 'success',
+                  text1: 'Contact deleted successfully',
+                  position: 'top',
+                });
+              }
+            } catch (error) {
+              console.error('Failed to delete contact:', error);
+              Toast.show({
+                type: 'error',
+                text1: 'Failed to delete contact',
+                position: 'top',
+              });
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
-    <ScrollView style={[styles.container, isDark && styles.darkContainer]}>
-      <View style={[styles.header, isDark && styles.darkSection]}>
+    <ScrollView style={[styles.container]}>
+      <View style={[styles.header]}>
         <TouchableOpacity onPress={handlePickImage}>
           <Image
             source={profilePicture ? { uri: profilePicture } : require('@/assets/images/profile-placeholder.jpg')}
@@ -176,37 +234,42 @@ export default function ProfileScreen() {
           <Text style={styles.changePictureText}>Change Picture</Text>
         </TouchableOpacity>
         
-        <Text style={[styles.userName, isDark && styles.darkText]}>{userName}</Text>
+        <Text style={[styles.userName]}>{userName}</Text>
         <View style={styles.statusBadge}>
           <Ionicons name="shield-checkmark" size={16} color="#4CAF50" />
           <Text style={styles.statusText}>Protected</Text>
         </View>
       </View>
 
-      <View style={[styles.section, isDark && styles.darkSection]}>
-        <Text style={[styles.sectionTitle, isDark && styles.darkTitle]}>Trusted Contacts</Text>
+      <View style={[styles.section]}>
+        <Text style={[styles.sectionTitle]}>Trusted Contacts</Text>
         {trustedContacts.map((contact, index) => (
-          <View key={index} style={[styles.contactCard, isDark && styles.darkCard]}>
+          <View key={index} style={[styles.contactCard]}>
             <Ionicons name="person-circle" size={24} color={isDark ? '#888' : '#666'} />
             <View style={styles.contactInfo}>
-              <Text style={[styles.contactName, isDark && styles.darkText]}>{contact.name}</Text>
-              <Text style={[styles.contactPhone, isDark && styles.darkSubtext]}>{contact.phone}</Text>
+              <Text style={[styles.contactName]}>{contact.name}</Text>
+              <Text style={[styles.contactPhone]}>{contact.phone}</Text>
             </View>
-            <TouchableOpacity onPress={() => handleEditContact(index)}>
-              <Ionicons name="create-outline" size={24} color="#1E90FF" />
-            </TouchableOpacity>
+            <View style={styles.contactActions}>
+              <TouchableOpacity onPress={() => handleEditContact(index)} style={styles.actionButton}>
+                <Ionicons name="create-outline" size={24} color="#4CAF50" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleDeleteContact(index)} style={styles.actionButton}>
+                <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+              </TouchableOpacity>
+            </View>
           </View>
         ))}
         <TouchableOpacity 
-          style={[styles.addButton, isDark && styles.darkAddButton]}
+          style={[styles.addButton]}
           onPress={handleAddContact}
         >
           <Text style={styles.addButtonText}>+ Add Trusted Contact</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.section, isDark && styles.darkSection]}>
-        <Text style={[styles.sectionTitle, isDark && styles.darkTitle]}>Safety Settings</Text>
+      <View style={[styles.section]}>
+        <Text style={[styles.sectionTitle]}>Safety Settings</Text>
         <View style={styles.settingItem}>
           <View style={styles.settingInfo}>
             <Text style={styles.settingTitle}>Location Sharing</Text>
@@ -247,23 +310,54 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <View style={[styles.section, isDark && styles.darkSection]}>
-        <Text style={[styles.sectionTitle, isDark && styles.darkTitle]}>Emergency Information</Text>
-        <View style={[styles.emergencyCard, isDark && styles.darkCard]}>
+      <View style={[styles.section]}>
+        <Text style={[styles.sectionTitle]}>Emergency Information</Text>
+        <View style={[styles.emergencyCard]}>
           {editingEmergency ? (
             <>
-              {Object.keys(emergencyInfo).map((key) => (
-                <View key={key} style={styles.emergencyItem}>
-                  <Text style={[styles.emergencyLabel, isDark && styles.darkSubtext]}>
-                    {key.charAt(0).toUpperCase() + key.slice(1)}
-                  </Text>
-                  <TextInput
-                    style={[styles.input, isDark && styles.darkInput]}
-                    value={emergencyInfo[key as keyof typeof emergencyInfo]}
-                    onChangeText={(text) => setEmergencyInfo(prev => ({...prev, [key]: text}))}
-                  />
+              <View style={styles.emergencyItem}>
+                <Text style={[styles.emergencyLabel]}>
+                  Blood Group
+                </Text>
+                <View style={[styles.pickerContainer]}>
+                    <Picker
+                    selectedValue={emergencyInfo.bloodGroup}
+                    onValueChange={(value: string) => setEmergencyInfo((prev: EmergencyInfo) => ({ ...prev, bloodGroup: value }))}
+                    style={[styles.picker]}
+                    dropdownIconColor={isDark ? '#000' : '#000'}
+                    itemStyle={[styles.pickerItem]}
+                    >
+                    {bloodGroups.map((group: string) => (
+                      <Picker.Item 
+                      key={group} 
+                      label={group} 
+                      value={group} 
+                      color={isDark ? '#000' : '#000'}
+                      />
+                    ))}
+                    </Picker>
                 </View>
-              ))}
+              </View>
+              <View style={styles.emergencyItem}>
+                <Text style={[styles.emergencyLabel]}>
+                  Allergies
+                </Text>
+                <TextInput
+                  style={[styles.input]}
+                  value={emergencyInfo.allergies}
+                  onChangeText={(text) => setEmergencyInfo(prev => ({...prev, allergies: text}))}
+                />
+              </View>
+              <View style={styles.emergencyItem}>
+                <Text style={[styles.emergencyLabel]}>
+                  Medications
+                </Text>
+                <TextInput
+                  style={[styles.input]}
+                  value={emergencyInfo.medications}
+                  onChangeText={(text) => setEmergencyInfo(prev => ({...prev, medications: text}))}
+                />
+              </View>
               <TouchableOpacity 
                 style={styles.editButton}
                 onPress={handleUpdateEmergencyInfo}
@@ -275,10 +369,10 @@ export default function ProfileScreen() {
             <>
               {Object.entries(emergencyInfo).map(([key, value]) => (
                 <View key={key} style={styles.emergencyItem}>
-                  <Text style={[styles.emergencyLabel, isDark && styles.darkSubtext]}>
+                  <Text style={[styles.emergencyLabel]}>
                     {key.charAt(0).toUpperCase() + key.slice(1)}
                   </Text>
-                  <Text style={[styles.emergencyValue, isDark && styles.darkText]}>{value}</Text>
+                  <Text style={[styles.emergencyValue]}>{value}</Text>
                 </View>
               ))}
               <TouchableOpacity 
@@ -306,13 +400,13 @@ export default function ProfileScreen() {
         onRequestClose={() => setIsModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, isDark && styles.darkModalContent]}>
-            <Text style={[styles.modalTitle, isDark && styles.darkText]}>
+          <View style={[styles.modalContent]}>
+            <Text style={[styles.modalTitle]}>
               {editingContactIndex !== null ? 'Edit Contact' : 'Add Contact'}
             </Text>
             
             <TextInput
-              style={[styles.modalInput, isDark && styles.darkInput]}
+              style={[styles.modalInput]}
               placeholder="Contact Name"
               placeholderTextColor={isDark ? '#888' : '#666'}
               value={tempContactName}
@@ -320,7 +414,7 @@ export default function ProfileScreen() {
             />
             
             <TextInput
-              style={[styles.modalInput, isDark && styles.darkInput]}
+              style={[styles.modalInput]}
               placeholder="Phone Number"
               placeholderTextColor={isDark ? '#888' : '#666'}
               value={tempContactPhone}
@@ -353,7 +447,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#E5ECE9',
   },
   header: {
     alignItems: 'center',
@@ -372,6 +466,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginVertical: 10,
+    color: "#333333",
   },
   statusBadge: {
     flexDirection: 'row',
@@ -396,12 +491,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
-    color: '#1E90FF',
+    color: '#fa887f',
   },
   contactCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f0f0f0',
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
@@ -419,7 +514,7 @@ const styles = StyleSheet.create({
   },
   addButton: {
     borderWidth: 1,
-    borderColor: '#1E90FF',
+    borderColor: '#fa887f',
     borderStyle: 'dashed',
     borderRadius: 8,
     padding: 12,
@@ -427,7 +522,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   addButtonText: {
-    color: '#1E90FF',
+    color: '#fa887f',
     fontWeight: '500',
   },
   settingItem: {
@@ -442,14 +537,14 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#b5b5b5'
+    color: '#333333',
   },
   settingDescription: {
     color: '#666',
     fontSize: 14,
   },
   emergencyCard: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f0f0f0',
     padding: 16,
     borderRadius: 8,
   },
@@ -457,7 +552,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emergencyLabel: {
-    color: '#b5b5b5',
+    color: '#333333',
     fontSize: 16,
   },
   emergencyValue: {
@@ -470,7 +565,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   editButton: {
-    backgroundColor: '#1E90FF',
+    backgroundColor: '#f09599',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -492,7 +587,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   changePictureText: {
-    color: '#1E90FF',
+    color: '#fa887f',
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
@@ -521,7 +616,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2D2D2D',
   },
   input: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#ffffff',
     padding: 8,
     borderRadius: 8,
     marginTop: 4,
@@ -582,5 +677,32 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: '#1E90FF',
+  },
+  pickerContainer: {
+    backgroundColor: '#cccccc',
+    borderRadius: 8,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 45,
+    width: '100%',
+    color: '#000000',
+  },
+  pickerItem: {
+    backgroundColor: '#000000',
+    color: '#fff',
+  },
+  darkPickerItem: {
+    backgroundColor: '#000000',
+    color: '#ffffff',
+  },
+  contactActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButton: {
+    padding: 4,
+    marginLeft: 8,
   },
 });
