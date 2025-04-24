@@ -27,7 +27,6 @@ export default function ProfileScreen() {
   ]);
   const [locationSharing, setLocationSharing] = useState(true);
   const [safetyAlerts, setSafetyAlerts] = useState(true);
-  const [biometricLock, setBiometricLock] = useState(false);
   type EmergencyInfo = {
     bloodGroup: string;
     allergies: string;
@@ -278,8 +277,8 @@ export default function ProfileScreen() {
           <Switch
             value={locationSharing}
             onValueChange={setLocationSharing}
-            trackColor={{ false: '#767577', true: '#81b0ff' }}
-            thumbColor={locationSharing ? '#1E90FF' : '#f4f3f4'}
+            trackColor={{ false: '#767577', true: '#f09599' }} // Active track color
+            thumbColor={locationSharing ? '#333' : '#f4f3f4'} // Updated active thumb color to #333
           />
         </View>
 
@@ -291,21 +290,8 @@ export default function ProfileScreen() {
           <Switch
             value={safetyAlerts}
             onValueChange={setSafetyAlerts}
-            trackColor={{ false: '#767577', true: '#81b0ff' }}
-            thumbColor={safetyAlerts ? '#1E90FF' : '#f4f3f4'}
-          />
-        </View>
-
-        <View style={styles.settingItem}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingTitle}>Biometric Lock</Text>
-            <Text style={styles.settingDescription}>Secure app with fingerprint/face ID</Text>
-          </View>
-          <Switch
-            value={biometricLock}
-            onValueChange={setBiometricLock}
-            trackColor={{ false: '#767577', true: '#81b0ff' }}
-            thumbColor={biometricLock ? '#1E90FF' : '#f4f3f4'}
+            trackColor={{ false: '#767577', true: '#f09599' }} // Active track color
+            thumbColor={safetyAlerts ? '#333' : '#f4f3f4'} // Updated active thumb color to #333
           />
         </View>
       </View>
@@ -488,7 +474,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     marginBottom: 16,
     color: '#fa887f',

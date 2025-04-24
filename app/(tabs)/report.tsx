@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: "#333333",
+    color: "#f09599",
   },
   label: {
     fontSize: 16,
